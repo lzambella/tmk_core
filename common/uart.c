@@ -1,129 +1,114 @@
-// TODO: Teensy support(ATMega32u4/AT90USB128)
-// Fixed for Arduino Duemilanove ATmega168p by Jun Wako
-/* UART Example for Teensy USB Development Board
- * http://www.pjrc.com/teensy/
- * Copyright (c) 2009 PJRC.COM, LLC
+/**
+ * UART functions with flow control
  * 
- * Permission is hereby granted, free of charge, to any person obtaining a copy
- * of this software and associated documentation files (the "Software"), to deal
- * in the Software without restriction, including without limitation the rights
- * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
- * copies of the Software, and to permit persons to whom the Software is
- * furnished to do so, subject to the following conditions:
- * 
- * The above copyright notice and this permission notice shall be included in
- * all copies or substantial portions of the Software.
- * 
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
- * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
- * THE SOFTWARE.
+ * 2021 Luke Zambella
  */
-
-// Version 1.0: Initial Release
-// Version 1.1: Add support for Teensy 2.0, minor optimizations
-
-
-#include <avr/io.h>
-#include <avr/interrupt.h>
-
 #include "uart.h"
+#include <debug.h>
+#include <avr/delay.h>
+// transmit buffer and index
+// idx_tail is always empty
+char xmit_buf[BUFFER_LEN];
 
-// These buffers may be any size from 2 to 256 bytes.
-#define RX_BUFFER_SIZE 64
-#define TX_BUFFER_SIZE 40
+// receive buffer
+char receiv_buf[BUFFER_LEN];
 
-static volatile uint8_t tx_buffer[TX_BUFFER_SIZE];
-static volatile uint8_t tx_buffer_head;
-static volatile uint8_t tx_buffer_tail;
-static volatile uint8_t rx_buffer[RX_BUFFER_SIZE];
-static volatile uint8_t rx_buffer_head;
-static volatile uint8_t rx_buffer_tail;
+uint8_t xmit_idx_head = 0;
+uint8_t xmit_idx_tail = 0;
 
-// Initialize the UART
-void uart_init(uint32_t baud)
-{
-	cli();
-	UBRR0 = (F_CPU / 4 / baud - 1) / 2;
-	UCSR0A = (1<<U2X0);
-	UCSR0B = (1<<RXEN0) | (1<<TXEN0) | (1<<RXCIE0);
-	UCSR0C = (1<<UCSZ01) | (1<<UCSZ00);
-	tx_buffer_head = tx_buffer_tail = 0;
-	rx_buffer_head = rx_buffer_tail = 0;
-	sei();
+// interrupt index for transferring data
+uint8_t xmit_ser_idx = 0;
+
+
+#define USART_BAUDRATE 9600
+#define BAUD_PRESCALE ((( F_CPU / ( USART_BAUDRATE * 16UL))) - 1)
+void uart_service_init(uint8_t baud_rate) {
+    // CTS is an INTPUT on the bluefruit but OUT on the teensy
+    // setting CTS to LOW allows data to be transferred out from the BLUEFRUIT
+    DDRD |= (1 << 5);   // CTS pin D5 set as OUTPUT
+    PORTD |= (1 << 5);  // set HIGH by default
+
+    // RTS is an OUT on the BLUEFRUIT 
+    // it is an INPUT on the MCU
+    // RTS from the bluefruit tells the MCU that data can be sent INTO the bluefruit
+    DDRB &= ~(1 << 7);   // RTS input (low)
+
+    unsigned int baud = BAUD_PRESCALE;
+    
+    UBRR1H = (unsigned char) (baud >> 8 );
+    UBRR1L = (unsigned char)baud;
+    
+    // enable received and transmitter
+    UCSR1B = ( 1 << RXEN1 ) | ( 1 << TXEN1 );
+    
+    // set frame format ( 8data, 2stop )
+    UCSR1C = ( 1 << USBS1 ) | ( 3 << UCSZ10 );
+
+    //UCSR1D |= (0<<RTSEN) | (0<<CTSEN);  // RTS, CTS
 }
 
-// Transmit a byte
-void uart_putchar(uint8_t c)
-{
-	uint8_t i;
+void uart_xmit(char data) {
+    // Buffer full, do nothing
+    // This should never happen
+    if (xmit_idx_tail == BUFFER_LEN) {
+        return;
+    }
 
-	i = tx_buffer_head + 1;
-	if (i >= TX_BUFFER_SIZE) i = 0;
-	while (tx_buffer_tail == i) ; // wait until space in buffer
-	//cli();
-	tx_buffer[i] = c;
-	tx_buffer_head = i;
-	UCSR0B = (1<<RXEN0) | (1<<TXEN0) | (1<<RXCIE0) | (1<<UDRIE0);
-	//sei();
+    xmit_buf[xmit_idx_tail] = data;
+    xmit_idx_tail++;
+}
+void uart_xmit_str(char * data, uint8_t size) {
+    for(uint8_t i = 0; i < size; i++) {
+        uart_xmit(data[i]);
+    }
+}
+void uart_receive() {
+    // Data comes form RX buffer
+    // if no data present then return
+    if ( UCSR1A & ( 1 << RXC1) ) {
+        // Print the hex data
+        while (!( UCSR1A & ( 1 << RXC1) ));
+        xprintf("%c", UDR1);
+    }
+}
+void send_xmit_buf() {
+    // If RTS is high then we cant send data
+    if ((PINB & (1 << 7)) >> 7 == 1) {
+        //print("Not clear to send!");
+        return;
+    }
+
+    // return if no data in the buffer
+    if (xmit_idx_head == 0 && xmit_idx_tail == 0) {
+        return;
+    }
+    // enable the cts line to send data to bluefruit
+    uart_cts_enable();
+
+    // Return if the send buffer is not ready
+    // xmit_idx_head ensures that the correct bit will be sent the 
+    // next time buffer is free
+    if (( UCSR1A & (1 << UDRE1) ) == 0) {
+        return;
+    }
+
+    // Send byte and increment the head for the next byte
+    UDR1 = xmit_buf[xmit_idx_head];
+    xmit_idx_head++;
+    if (xmit_idx_head == xmit_idx_tail) {
+        // Reset buffer index
+        xmit_idx_tail = 0;
+        xmit_idx_head = 0;
+    }
+    // CTS is input on bluefruit, output on teensy
+    // tell bluefruit that we are finished sending data by diabling pin
+    uart_cts_disable();
 }
 
-// Receive a byte
-uint8_t uart_getchar(void)
-{
-        uint8_t c, i;
-
-	while (rx_buffer_head == rx_buffer_tail) ; // wait for character
-        i = rx_buffer_tail + 1;
-        if (i >= RX_BUFFER_SIZE) i = 0;
-        c = rx_buffer[i];
-        rx_buffer_tail = i;
-        return c;
+void uart_cts_enable() {
+    PORTD |= (1 << 5);
 }
 
-// Return the number of bytes waiting in the receive buffer.
-// Call this before uart_getchar() to check if it will need
-// to wait for a byte to arrive.
-uint8_t uart_available(void)
-{
-	uint8_t head, tail;
-
-	head = rx_buffer_head;
-	tail = rx_buffer_tail;
-	if (head >= tail) return head - tail;
-	return RX_BUFFER_SIZE + head - tail;
+void uart_cts_disable() {
+    PORTD &= ~(1 << 5);
 }
-
-// Transmit Interrupt
-ISR(USART_UDRE_vect)
-{
-	uint8_t i;
-
-	if (tx_buffer_head == tx_buffer_tail) {
-		// buffer is empty, disable transmit interrupt
-		UCSR0B = (1<<RXEN0) | (1<<TXEN0) | (1<<RXCIE0);
-	} else {
-		i = tx_buffer_tail + 1;
-		if (i >= TX_BUFFER_SIZE) i = 0;
-		UDR0 = tx_buffer[i];
-		tx_buffer_tail = i;
-	}
-}
-
-// Receive Interrupt
-ISR(USART_RX_vect)
-{
-	uint8_t c, i;
-
-	c = UDR0;
-	i = rx_buffer_head + 1;
-	if (i >= RX_BUFFER_SIZE) i = 0;
-	if (i != rx_buffer_tail) {
-		rx_buffer[i] = c;
-		rx_buffer_head = i;
-	}
-}
-

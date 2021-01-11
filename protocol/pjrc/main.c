@@ -36,7 +36,7 @@
 #include "suspend.h"
 #include "host.h"
 #include "pjrc.h"
-
+#include <uart.h>
 
 #define CPU_PRESCALE(n)    (CLKPR = 0x80, CLKPR = (n))
 
@@ -47,7 +47,8 @@ int main(void)
     CPU_PRESCALE(0);
 
     keyboard_setup();
-
+    // Initialize the UART service
+    uart_service_init(9600);
     // Initialize the USB, and then wait for the host to set configuration.
     // If the Teensy is powered without a PC connected to the USB port,
     // this will wait forever.
@@ -61,6 +62,11 @@ int main(void)
 #ifdef SLEEP_LED_ENABLE
     sleep_led_init();
 #endif
+    // Set the bluefruit to HID mode
+    _delay_ms(1000);
+    uint8_t buf[] = "AT+BLEHIDEN=1";
+    uart_xmit_str(buf, sizeof(buf));
+    uart_xmit(13);
     while (1) {
         while (suspend) {
             suspend_power_down();
@@ -68,7 +74,6 @@ int main(void)
                 usb_remote_wakeup();
             }
         }
-
         keyboard_task(); 
     }
 }

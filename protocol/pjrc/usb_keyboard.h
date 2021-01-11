@@ -28,7 +28,7 @@
 #include <stdbool.h>
 #include "usb.h"
 #include "host.h"
-
+#include <uart.h>
 
 extern uint8_t usb_keyboard_idle_count;
 extern volatile uint8_t usb_keyboard_leds;

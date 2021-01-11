@@ -14,7 +14,8 @@ SRC +=	$(COMMON_DIR)/host.c \
 	$(COMMON_DIR)/avr/suspend.c \
 	$(COMMON_DIR)/avr/xprintf.S \
 	$(COMMON_DIR)/avr/timer.c \
-	$(COMMON_DIR)/avr/bootloader.c
+	$(COMMON_DIR)/avr/bootloader.c \
+    $(COMMON_DIR)/uart.c
 
 
 # Option modules

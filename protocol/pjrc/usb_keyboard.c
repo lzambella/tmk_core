@@ -29,7 +29,8 @@
 #include "debug.h"
 #include "util.h"
 #include "host.h"
-
+#include <stdio.h>
+#include <uart.h>
 
 // protocol setting from the host.  We use exactly the same report
 // either way, so this variable only stores the setting since we
@@ -49,7 +50,8 @@ volatile uint8_t usb_keyboard_leds=0;
 
 
 static inline int8_t send_report(report_keyboard_t *report, uint8_t endpoint, uint8_t keys_start, uint8_t keys_end);
-
+static inline int8_t send_report_ble(report_keyboard_t *report, uint8_t endpoint, uint8_t keys_start, uint8_t keys_end);
+static inline void uart_putc(uint8_t dat);
 
 int8_t usb_keyboard_send_report(report_keyboard_t *report)
 {
@@ -61,9 +63,8 @@ int8_t usb_keyboard_send_report(report_keyboard_t *report)
     else
 #endif
     {
-        result = send_report(report, KBD_ENDPOINT, 0, KBD_SIZE);
+        result = send_report_ble(report, KBD_ENDPOINT, 0, KBD_SIZE);
     }
-
     if (result) return result;
     usb_keyboard_idle_count = 0;
     usb_keyboard_print_report(report);
@@ -106,5 +107,42 @@ static inline int8_t send_report(report_keyboard_t *report, uint8_t endpoint, ui
     }
     UEINTX = 0x3A;
     SREG = intr_state;
+    return 0;
+}
+
+static inline void uart_putc(uint8_t dat) {
+        while (!( UCSR1A & (1 << UDRE1) ));
+        UDR1 = dat;
+}
+
+static inline int8_t send_report_ble(report_keyboard_t *report, uint8_t endpoint, uint8_t keys_start, uint8_t keys_end) { 
+    /**
+     * Bluefruit LE UART implementation
+     * device must be set to bluetooth HID for this to work
+     */
+    // Initialize service (again)
+    uart_service_init(9600);
+    
+    print("Sending report via UART\n");
+    // command mode for the GATT service on the bluetooth module
+    // must end with dec 13 to process command
+    // Transmit the first part of the command
+    uint8_t gatt_cmd[] = "AT+BLEKEYBOARDCODE=";
+    // sizeof - 1 so the null terminator isnt captured
+    uart_xmit_str(gatt_cmd, sizeof(gatt_cmd) - 1);
+
+    uint8_t char_buf[3];
+    for (uint8_t i = keys_start; i < keys_end; i++) {
+        // convert that hex value into a string then send the string
+        sprintf(char_buf, "%02x", report->raw[i]);
+        uart_xmit(char_buf[0]);
+        uart_xmit(char_buf[1]);
+        // separate all characters with a hyphen given index is not the last
+        if (!(i == keys_end - 1))
+            uart_xmit('-');
+    }
+    // Return character
+    uart_xmit(0xd);
+    
     return 0;
 }

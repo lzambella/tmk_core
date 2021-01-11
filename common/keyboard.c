@@ -43,7 +43,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifdef ADB_MOUSE_ENABLE
 #include "adb.h"
 #endif
-
+#include "uart.h"
 
 #ifdef MATRIX_HAS_GHOST
 static bool has_ghost_in_row(uint8_t row)
@@ -166,7 +166,10 @@ MATRIX_LOOP_END:
 #ifdef ADB_MOUSE_ENABLE
         adb_mouse_task();
 #endif
-
+    // Send any UART data to the bluefruit
+    send_xmit_buf();
+    // Receive any waiting data
+    uart_receive();
     // update LED
     if (led_status != host_keyboard_leds()) {
         led_status = host_keyboard_leds();
