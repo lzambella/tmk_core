@@ -48,12 +48,18 @@ int main(void)
 
     keyboard_setup();
     // Initialize the UART service
-    uart_service_init(9600);
+    uart_service_init();
     // Initialize the USB, and then wait for the host to set configuration.
     // If the Teensy is powered without a PC connected to the USB port,
     // this will wait forever.
+    #ifdef BLUETOOTH_ENABLE
+    ble_init();
+    #else
     usb_init();
     while (!usb_configured()) /* wait */ ;
+    #endif
+    
+   
 
     print_set_sendchar(sendchar);
 
@@ -68,12 +74,16 @@ int main(void)
     uart_xmit_str(buf, sizeof(buf));
     uart_xmit(13);
     while (1) {
+        /*
         while (suspend) {
             suspend_power_down();
             if (remote_wakeup && suspend_wakeup_condition()) {
                 usb_remote_wakeup();
             }
         }
+        */
         keyboard_task(); 
+        // Send any UART data to the bluefruit
+        send_xmit_buf();
     }
 }

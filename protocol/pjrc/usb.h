@@ -33,6 +33,7 @@ extern bool remote_wakeup;
 extern bool suspend;
 
 void usb_init(void);			// initialize everything
+void ble_init(void);
 uint8_t usb_configured(void);		// is the USB port configured
 void usb_remote_wakeup(void);
 

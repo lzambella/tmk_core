@@ -7,11 +7,13 @@
 #include <avr/interrupt.h>
 #include <avr/io.h>
 
-#define BUFFER_LEN 256
+// Big mommy buffer
+#define BUFFER_LEN 1024
+
 /**
  * Initialize the UART service
  */
-void uart_service_init(uint8_t baud_rate);
+void uart_service_init();
 /**
  * Append a single byte of data to the tramsmit buffer
  */

@@ -619,6 +619,11 @@ void usb_init(void)
 	sei();
 }
 
+void ble_init(void)
+{
+	HW_CONFIG();
+	sei();
+}
 // return 0 if the USB is not configured, or the configuration
 // number selected by the HOST
 uint8_t usb_configured(void)

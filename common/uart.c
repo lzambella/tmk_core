@@ -20,9 +20,9 @@ uint8_t xmit_idx_tail = 0;
 uint8_t xmit_ser_idx = 0;
 
 
-#define USART_BAUDRATE 9600
-#define BAUD_PRESCALE ((( F_CPU / ( USART_BAUDRATE * 16UL))) - 1)
-void uart_service_init(uint8_t baud_rate) {
+#define USART_BAUDRATE 115200
+#define BAUD_PRESCALE ((( F_CPU / ( USART_BAUDRATE * 8UL))) - 1)
+void uart_service_init() {
     // CTS is an INTPUT on the bluefruit but OUT on the teensy
     // setting CTS to LOW allows data to be transferred out from the BLUEFRUIT
     DDRD |= (1 << 5);   // CTS pin D5 set as OUTPUT
@@ -39,9 +39,12 @@ void uart_service_init(uint8_t baud_rate) {
     UBRR1L = (unsigned char)baud;
     
     // enable received and transmitter
-    UCSR1B = ( 1 << RXEN1 ) | ( 1 << TXEN1 );
-    
-    // set frame format ( 8data, 2stop )
+    //UCSR1B = ( 1 << RXEN1 ) | ( 1 << TXEN1 );
+    // Set to double speed mode
+    UCSR1A |= (1 << U2X1);
+    // Enable transfer only
+    UCSR1B = ( 1 << TXEN1 );
+
     UCSR1C = ( 1 << USBS1 ) | ( 3 << UCSZ10 );
 
     //UCSR1D |= (0<<RTSEN) | (0<<CTSEN);  // RTS, CTS
@@ -75,7 +78,7 @@ void send_xmit_buf() {
     // If RTS is high then we cant send data
     if ((PINB & (1 << 7)) >> 7 == 1) {
         //print("Not clear to send!");
-        return;
+        //return;
     }
 
     // return if no data in the buffer

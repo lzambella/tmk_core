@@ -47,7 +47,8 @@ uint8_t usb_keyboard_idle_count=0;
 
 // 1=num lock, 2=caps lock, 4=scroll lock, 8=compose, 16=kana
 volatile uint8_t usb_keyboard_leds=0;
-
+// CMD mode code for bluefruit
+uint8_t gatt_cmd[] = "AT+BLEKEYBOARDCODE=";
 
 static inline int8_t send_report(report_keyboard_t *report, uint8_t endpoint, uint8_t keys_start, uint8_t keys_end);
 static inline int8_t send_report_ble(report_keyboard_t *report, uint8_t endpoint, uint8_t keys_start, uint8_t keys_end);
@@ -63,7 +64,12 @@ int8_t usb_keyboard_send_report(report_keyboard_t *report)
     else
 #endif
     {
+        // If bluetooth is enabled for use then send a report via that instead
+        #ifdef BLUETOOTH_ENABLE
         result = send_report_ble(report, KBD_ENDPOINT, 0, KBD_SIZE);
+        #else
+        result = result = send_report(report, KBD_ENDPOINT, 0, KBD_SIZE);
+        #endif
     }
     if (result) return result;
     usb_keyboard_idle_count = 0;
@@ -121,13 +127,13 @@ static inline int8_t send_report_ble(report_keyboard_t *report, uint8_t endpoint
      * device must be set to bluetooth HID for this to work
      */
     // Initialize service (again)
-    uart_service_init(9600);
+    uart_service_init();
     
-    print("Sending report via UART\n");
+    // print("Sending report via UART\n");
     // command mode for the GATT service on the bluetooth module
     // must end with dec 13 to process command
     // Transmit the first part of the command
-    uint8_t gatt_cmd[] = "AT+BLEKEYBOARDCODE=";
+    
     // sizeof - 1 so the null terminator isnt captured
     uart_xmit_str(gatt_cmd, sizeof(gatt_cmd) - 1);
 
@@ -138,7 +144,7 @@ static inline int8_t send_report_ble(report_keyboard_t *report, uint8_t endpoint
         uart_xmit(char_buf[0]);
         uart_xmit(char_buf[1]);
         // separate all characters with a hyphen given index is not the last
-        if (!(i == keys_end - 1))
+        if (i < keys_end)
             uart_xmit('-');
     }
     // Return character

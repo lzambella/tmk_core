@@ -28,3 +28,4 @@ VPATH += $(TMK_DIR)/$(PJRC_DIR)
 
 # This indicates using LUFA stack
 OPT_DEFS += -DPROTOCOL_PJRC
+BLUETOOTH_ENABLE = 1

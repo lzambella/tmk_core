@@ -101,3 +101,4 @@ OPT_DEFS += -DVERSION=$(VERSION)
 
 # Search Path
 VPATH += $(TMK_DIR)/common
+BLUETOOTH_ENABLE = 1
