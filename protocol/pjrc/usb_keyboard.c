@@ -31,7 +31,7 @@
 #include "host.h"
 #include <stdio.h>
 #include <uart.h>
-
+#include "config.h"
 // protocol setting from the host.  We use exactly the same report
 // either way, so this variable only stores the setting since we
 // are required to be able to report which setting is in use.
@@ -68,7 +68,7 @@ int8_t usb_keyboard_send_report(report_keyboard_t *report)
         #ifdef BLUETOOTH_ENABLE
         result = send_report_ble(report, KBD_ENDPOINT, 0, KBD_SIZE);
         #else
-        result = result = send_report(report, KBD_ENDPOINT, 0, KBD_SIZE);
+        result = send_report(report, KBD_ENDPOINT, 0, KBD_SIZE);
         #endif
     }
     if (result) return result;
@@ -144,7 +144,7 @@ static inline int8_t send_report_ble(report_keyboard_t *report, uint8_t endpoint
         uart_xmit(char_buf[0]);
         uart_xmit(char_buf[1]);
         // separate all characters with a hyphen given index is not the last
-        if (i < keys_end)
+        if (i < keys_end - 1)
             uart_xmit('-');
     }
     // Return character

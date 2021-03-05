@@ -404,6 +404,7 @@ enum hid_keyboard_keypad_usage {
     KC_RGUI,
 
     /* NOTE: 0xE8-FF are used for internal special purpose */
+
 };
 
 /* Special keycodes */

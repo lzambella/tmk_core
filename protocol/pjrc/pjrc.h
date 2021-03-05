@@ -19,8 +19,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define PJRC_H
 
 #include "host_driver.h"
-#define BLUETOOTH_ENABLE 1
-
+#include "config.h"
 host_driver_t *pjrc_driver(void);
 
 #endif

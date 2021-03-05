@@ -253,7 +253,32 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #define AC_RSHIFT		ACTION_KEY(KC_RSHIFT)
 #define AC_RALT			ACTION_KEY(KC_RALT)
 #define AC_RGUI			ACTION_KEY(KC_RGUI)
+/* Macro keys */
+#define AC_MACRO01      ACTION_KEY(KC_MACRO01)
+#define AC_MACRO02      ACTION_KEY(KC_MACRO02)
+#define AC_MACRO03      ACTION_KEY(KC_MACRO03)
+#define AC_MACRO04      ACTION_KEY(KC_MACRO04)
+#define AC_MACRO05      ACTION_KEY(KC_MACRO05)
+#define AC_MACRO06      ACTION_KEY(KC_MACRO06)
+#define AC_MACRO07      ACTION_KEY(KC_MACRO07)
+#define AC_MACRO08      ACTION_KEY(KC_MACRO08)
+#define AC_MACRO09      ACTION_KEY(KC_MACRO09)
+#define AC_MACRO010      ACTION_KEY(KC_MACRO010)
+#define AC_MACRO011      ACTION_KEY(KC_MACRO011)
+#define AC_MACRO012      ACTION_KEY(KC_MACRO012)
 
+#define AC_ENC1A        ACTION_KEY(KC_ENC1A)
+#define AC_ENC1B        ACTION_KEY(KC_ENC1B)
+#define AC_ENC2A        ACTION_KEY(KC_ENC2A)
+#define AC_ENC2B        ACTION_KEY(KC_ENC2B)
+#define AC_ENC3A        ACTION_KEY(KC_ENC3A)
+#define AC_ENC3B        ACTION_KEY(KC_ENC3B)
+#define AC_ENC4A        ACTION_KEY(KC_ENC4A)
+#define AC_ENC4B        ACTION_KEY(KC_ENC4B)
+#define AC_ENC5A        ACTION_KEY(KC_ENC5A)
+#define AC_ENC5B        ACTION_KEY(KC_ENC5B)
+#define AC_ENC6A        ACTION_KEY(KC_ENC6A)
+#define AC_ENC6B        ACTION_KEY(KC_ENC6B)
 /*
  * TMK extensions
  */

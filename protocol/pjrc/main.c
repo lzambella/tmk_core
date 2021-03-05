@@ -39,7 +39,7 @@
 #include <uart.h>
 
 #define CPU_PRESCALE(n)    (CLKPR = 0x80, CLKPR = (n))
-
+void xmit_cmd(char * c);
 
 int main(void)
 {
@@ -73,6 +73,14 @@ int main(void)
     uint8_t buf[] = "AT+BLEHIDEN=1";
     uart_xmit_str(buf, sizeof(buf));
     uart_xmit(13);
+
+    // Init custom GATT service
+    xmit_cmd("AT+GATTCLEAR");
+    _delay_ms(100);
+    xmit_cmd("AT+GATTADDSERVICE=UUID128=00-19-45-25-A8-50-24-54-21-76-35-45-15-48-65-25");
+    _delay_ms(100);
+    xmit_cmd("AT+GATTADDCHAR=UUID=0x0001,PROPERTIES=0x08,DESCRIPTION=PAYLOAD,DATATYPE=2");
+
     while (1) {
         /*
         while (suspend) {
@@ -86,4 +94,10 @@ int main(void)
         // Send any UART data to the bluefruit
         send_xmit_buf();
     }
+}
+
+
+void xmit_cmd(char * c) {
+    uart_xmit_str(c);
+    uart_xmit(13);
 }
