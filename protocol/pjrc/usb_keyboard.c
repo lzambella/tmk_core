@@ -135,20 +135,25 @@ static inline int8_t send_report_ble(report_keyboard_t *report, uint8_t endpoint
     // Transmit the first part of the command
     
     // sizeof - 1 so the null terminator isnt captured
-    uart_xmit_str(gatt_cmd, sizeof(gatt_cmd) - 1);
+    //uart_xmit_str(gatt_cmd, sizeof(gatt_cmd) - 1);
 
     uint8_t char_buf[3];
+    // Custom GATT service should always be 1 since its the only one init
+    // on each boot
+    //char entry[] = "AT+BLEUARTTX=";
+    //uart_xmit_str(entry, strlen(entry));
     for (uint8_t i = keys_start; i < keys_end; i++) {
+        // Send one byte at a time
         // convert that hex value into a string then send the string
-        sprintf(char_buf, "%02x", report->raw[i]);
-        uart_xmit(char_buf[0]);
-        uart_xmit(char_buf[1]);
-        // separate all characters with a hyphen given index is not the last
-        if (i < keys_end - 1)
-            uart_xmit('-');
+        uart_xmit(report->raw[i]);
+        
+        //sprintf(char_buf, "%02x", report->raw[i]);
+        //uart_xmit(char_buf[0]);
+        //uart_xmit(char_buf[1]);
     }
-    // Return character
-    uart_xmit(0xd);
-    
+    // stop character for the software
+    uart_xmit(0xFF);
+    // Return character for CMD mode
+    //uart_xmit(0xd);
     return 0;
 }

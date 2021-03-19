@@ -41,3 +41,7 @@ void uart_cts_enable();
 void uart_cts_disable();
 
 void uart_receive();
+/**
+ * Send all chatacters in the buffer over the serial line syncronously.
+ */
+void uart_dump_buf();

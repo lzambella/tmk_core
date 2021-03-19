@@ -70,7 +70,8 @@ void uart_receive() {
     // if no data present then return
     if ( UCSR1A & ( 1 << RXC1) ) {
         // Print the hex data
-        while (!( UCSR1A & ( 1 << RXC1) ));
+        if (!( UCSR1A & ( 1 << RXC1) ))
+            return;
         xprintf("%c", UDR1);
     }
 }
@@ -106,6 +107,33 @@ void send_xmit_buf() {
     // CTS is input on bluefruit, output on teensy
     // tell bluefruit that we are finished sending data by diabling pin
     uart_cts_disable();
+}
+
+void uart_dump_buf() {
+    uart_cts_enable();
+    do {
+        // If RTS is high then we cant send data
+        if ((PINB & (1 << 7)) >> 7 == 1) {
+            //print("Not clear to send!");
+            //return;
+        }
+
+        // Wait to be free
+        //while (xmit_idx_head == 0 && xmit_idx_tail == 0);
+        while (( UCSR1A & (1 << UDRE1) ) == 0);
+
+        // Send byte and increment the head for the next byte
+        UDR1 = xmit_buf[xmit_idx_head];
+        xmit_idx_head++;
+        if (xmit_idx_head == xmit_idx_tail) {
+            // Reset buffer index
+
+            xmit_idx_tail = 0;
+            xmit_idx_head = 0;
+            uart_cts_disable();
+            return;
+        }
+    } while (1);
 }
 
 void uart_cts_enable() {

@@ -54,6 +54,7 @@ int main(void)
     // this will wait forever.
     #ifdef BLUETOOTH_ENABLE
     ble_init();
+    //usb_init();
     #else
     usb_init();
     while (!usb_configured()) /* wait */ ;
@@ -70,17 +71,20 @@ int main(void)
 #endif
     // Set the bluefruit to HID mode
     _delay_ms(1000);
-    uint8_t buf[] = "AT+BLEHIDEN=1";
+    /*
+    uint8_t buf[] = "AT+BLEHIDEN=0";
     uart_xmit_str(buf, sizeof(buf));
     uart_xmit(13);
-
+    */
     // Init custom GATT service
-    xmit_cmd("AT+GATTCLEAR");
-    _delay_ms(100);
-    xmit_cmd("AT+GATTADDSERVICE=UUID128=00-19-45-25-A8-50-24-54-21-76-35-45-15-48-65-25");
-    _delay_ms(100);
-    xmit_cmd("AT+GATTADDCHAR=UUID=0x0001,PROPERTIES=0x08,DESCRIPTION=PAYLOAD,DATATYPE=2");
-
+    /*xmit_cmd("AT+GATTCLEAR");
+    _delay_ms(500);
+    xmit_cmd("AT+GATTADDSERVICE=UUID128=3a-1f-8b-b9-7c-68-4b-eb-b1-5b-40-55-d8-1b-f8-15");
+    //uart_dump_buf();
+    _delay_ms(500);
+    xmit_cmd("AT+GATTADDCHAR=UUID128=3a-1f-00-01-7c-68-4b-eb-b1-5b-40-55-d8-1b-f8-15,PROPERTIES=0x08");
+    //uart_dump_buf();
+    */
     while (1) {
         /*
         while (suspend) {
@@ -93,11 +97,12 @@ int main(void)
         keyboard_task(); 
         // Send any UART data to the bluefruit
         send_xmit_buf();
+        uart_receive();
     }
 }
 
 
 void xmit_cmd(char * c) {
-    uart_xmit_str(c);
+    uart_xmit_str(c, strlen(c));
     uart_xmit(13);
 }
